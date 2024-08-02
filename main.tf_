@@ -1,0 +1,244 @@
+#  For the demonstration all code in one place.
+#  Comment main.tf before running terraform apply
+
+############################################################################ A list of providers
+
+# Source: https://registry.terraform.io/providers/terrabitz/wasabi/latest
+
+terraform {
+  required_providers {
+    wasabi = {
+      source  = "terrabitz/wasabi"
+      version = "4.1.3"
+    }
+  }
+}
+
+provider "wasabi" {
+  region     = var.region
+  access_key = var.access_key
+  secret_key = var.secret_key
+}
+
+############################################################################# s3 backend
+
+# TODO: need to check for wasabi configuration and posibiliy to use dynamo_db for the state locking
+
+# # s3 backend
+# terraform {
+#   backend "s3" {
+#     bucket = "XXXXXXXX-wasabi-state-file"
+#     key    = "wasabi/tfstate_files/project.tfstate"
+#     region = "us-east-1"
+#     dynamodb_table = "terraform-locks"
+#     encrypt        = true
+#   }
+# }
+
+# local backend
+terraform {
+  backend "local" {
+    path = "terraform.tfstate"
+  }
+}
+
+############################################################################# A list of buckets
+
+resource "wasabi_bucket" "sales_data_bucket" {
+  bucket = "sales-${var.bucket_name_postfix}"
+}
+
+resource "wasabi_bucket" "marketing_data_bucket" {
+  bucket = "marketing-${var.bucket_name_postfix}"
+}
+
+resource "wasabi_bucket" "engineering_data_bucket" {
+  bucket = "engineering-${var.bucket_name_postfix}"
+}
+
+resource "wasabi_bucket" "finance_data_bucket" {
+  bucket = "finance-${var.bucket_name_postfix}"
+}
+
+resource "wasabi_bucket" "operations_data_bucket" {
+  bucket = "operations-${var.bucket_name_postfix}"
+}
+
+############################################################################# A list of policies
+
+# Read-Only Policy
+data "wasabi_policy_document" "read_only" {
+  statement {
+    sid = "AllowRead"
+
+    actions = [
+      "s3:GetObject",
+      "s3:GetObjectAttributes",
+      "s3:ListBucket",
+    ]
+
+    resources = [
+      "*",
+    ]
+  }
+}
+
+# Read-Write Policy
+data "wasabi_policy_document" "read_write" {
+  statement {
+    sid = "AllowRead"
+
+    actions = [
+      "s3:*Object*",
+      "s3:ListBucket",
+    ]
+
+    resources = [
+      "*",
+    ]
+  }
+}
+
+############################################################################# A list of users
+
+resource "wasabi_user" "alice" {
+  name = "alice"
+}
+
+resource "wasabi_user" "bob" {
+  name = "bob"
+}
+
+resource "wasabi_user" "charlie" {
+  name = "charlie"
+}
+
+resource "wasabi_user" "backup" {
+  name = "backup"
+}
+
+############################################################################# Attach policies to the users
+
+# Alice's Permissions
+resource "wasabi_bucket_policy" "alice_sales_data_bucket_rw" {
+  bucket = wasabi_bucket.sales_data_bucket.id
+  policy = data.wasabi_policy_document.read_write.json
+}
+
+resource "wasabi_bucket_policy" "alice_marketing_data_bucket_rw" {
+  bucket = wasabi_bucket.marketing_data_bucket.id
+  policy = data.wasabi_policy_document.read_write.json
+}
+
+resource "wasabi_bucket_policy" "alice_engineering_data_bucket_ro" {
+  bucket = wasabi_bucket.engineering_data_bucket.id
+  policy = data.wasabi_policy_document.read_only.json
+}
+
+# Bob's Permissions (All Buckets Read-Write)
+resource "wasabi_bucket_policy" "bob_sales_data_bucket_rw" {
+  bucket = wasabi_bucket.sales_data_bucket.id
+  policy = data.wasabi_policy_document.read_write.json
+}
+
+resource "wasabi_bucket_policy" "bob_marketing_data_bucket_rw" {
+  bucket = wasabi_bucket.marketing_data_bucket.id
+  policy = data.wasabi_policy_document.read_write.json
+}
+
+resource "wasabi_bucket_policy" "bob_engineering_data_bucket_rw" {
+  bucket = wasabi_bucket.engineering_data_bucket.id
+  policy = data.wasabi_policy_document.read_write.json
+}
+
+resource "wasabi_bucket_policy" "bob_finance_data_bucket_rw" {
+  bucket = wasabi_bucket.finance_data_bucket.id
+  policy = data.wasabi_policy_document.read_write.json
+}
+
+resource "wasabi_bucket_policy" "bob_operations_data_bucket_rw" {
+  bucket = wasabi_bucket.operations_data_bucket.id
+  policy = data.wasabi_policy_document.read_write.json
+}
+
+# Charlie's Permissions
+resource "wasabi_bucket_policy" "charlie_operations_data_bucket_rw" {
+  bucket = wasabi_bucket.operations_data_bucket.id
+  policy = data.wasabi_policy_document.read_write.json
+}
+
+resource "wasabi_bucket_policy" "charlie_finance_data_bucket_ro" {
+  bucket = wasabi_bucket.finance_data_bucket.id
+  policy = data.wasabi_policy_document.read_only.json
+}
+
+# Backup User's Permissions (All Buckets Read-Only)
+resource "wasabi_bucket_policy" "backup_sales_data_bucket_ro" {
+  bucket = wasabi_bucket.sales_data_bucket.id
+  policy = data.wasabi_policy_document.read_only.json
+}
+
+resource "wasabi_bucket_policy" "backup_marketing_data_bucket_ro" {
+  bucket = wasabi_bucket.marketing_data_bucket.id
+  policy = data.wasabi_policy_document.read_only.json
+}
+
+resource "wasabi_bucket_policy" "backup_engineering_data_bucket_ro" {
+  bucket = wasabi_bucket.engineering_data_bucket.id
+  policy = data.wasabi_policy_document.read_only.json
+}
+
+resource "wasabi_bucket_policy" "backup_finance_data_bucket_ro" {
+  bucket = wasabi_bucket.finance_data_bucket.id
+  policy = data.wasabi_policy_document.read_only.json
+}
+
+resource "wasabi_bucket_policy" "backup_operations_data_bucket_ro" {
+  bucket = wasabi_bucket.operations_data_bucket.id
+  policy = data.wasabi_policy_document.read_only.json
+}
+
+############################################################################# A list of variables
+
+variable "region" {
+  type        = string
+  description = "The Wasabi region to deploy Wasabi resources into"
+}
+
+variable "access_key" {
+  type        = string
+  description = "Wasabi access key"
+}
+
+variable "secret_key" {
+  type        = string
+  description = "Wasabi secret key"
+}
+
+variable "bucket_name_postfix" {
+  type        = string
+  description = "Postfix to use for all bucket names"
+}
+
+############################################################################# Outputs
+
+output "bucket_arns" {
+  value = {
+    sales      = wasabi_bucket.sales_data_bucket.arn
+    marketing  = wasabi_bucket.marketing_data_bucket.arn
+    engineering = wasabi_bucket.engineering_data_bucket.arn
+    finance    = wasabi_bucket.finance_data_bucket.arn
+    operations = wasabi_bucket.operations_data_bucket.arn
+  }
+  description = "The ARNs of the created buckets"
+}
+
+output "user_names" {
+  value = {
+    alice   = wasabi_user.alice.name
+    bob     = wasabi_user.bob.name
+    charlie = wasabi_user.charlie.name
+    backup  = wasabi_user.backup.name
+  }
+  description = "The names of the created users"
+}
