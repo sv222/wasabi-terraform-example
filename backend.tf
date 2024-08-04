@@ -1,4 +1,4 @@
-# TODO: need to check for wasabi configuration and posibiliy to use dynamo_db for the state locking
+# TODO: Need to check for wasabi configuration and possiblility to use dynamo_db alternative in wasabi for state locking
 
 # # s3 backend
 # terraform {

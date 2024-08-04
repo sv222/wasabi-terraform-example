@@ -1,15 +1,7 @@
-resource "wasabi_user" "alice" {
-  name = "alice"
-}
-
-resource "wasabi_user" "bob" {
-  name = "bob"
-}
-
-resource "wasabi_user" "charlie" {
-  name = "charlie"
-}
-
-resource "wasabi_user" "backup" {
-  name = "backup"
+resource "wasabi_user" "users" {
+  for_each = toset(var.user_names)
+  name     = each.value
+  lifecycle {
+    ignore_changes = [name]
+  }
 }

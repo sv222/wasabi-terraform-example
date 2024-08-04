@@ -1,16 +1,28 @@
+# TODO: Verify policy accuracy in Wasabi documentation
+and comparability with AWS S3
+
 # Read-Only Policy
 data "wasabi_policy_document" "read_only" {
   statement {
-    sid = "AllowRead"
+    sid = "ReadOnlyAccess"
 
     actions = [
-      "s3:GetObject",
-      "s3:GetObjectAttributes",
-      "s3:ListBucket",
+      "s3:Get*",
+      "s3:List*",
+      "s3:Describe*",
     ]
 
     resources = [
-      "*",
+      "arn:aws:s3:::sales-data-bucket",
+      "arn:aws:s3:::sales-data-bucket/*",
+      "arn:aws:s3:::marketing-data-bucket",
+      "arn:aws:s3:::marketing-data-bucket/*",
+      "arn:aws:s3:::engineering-data-bucket",
+      "arn:aws:s3:::engineering-data-bucket/*",
+      "arn:aws:s3:::finance-data-bucket",
+      "arn:aws:s3:::finance-data-bucket/*",
+      "arn:aws:s3:::operations-data-bucket",
+      "arn:aws:s3:::operations-data-bucket/*"
     ]
   }
 }
@@ -18,7 +30,7 @@ data "wasabi_policy_document" "read_only" {
 # Read-Write Policy
 data "wasabi_policy_document" "read_write" {
   statement {
-    sid = "AllowRead"
+    sid = "ReadWriteAccess"
 
     actions = [
       "s3:*Object*",
@@ -26,7 +38,16 @@ data "wasabi_policy_document" "read_write" {
     ]
 
     resources = [
-      "*",
+      "arn:aws:s3:::sales-data-bucket",
+      "arn:aws:s3:::sales-data-bucket/*",
+      "arn:aws:s3:::marketing-data-bucket",
+      "arn:aws:s3:::marketing-data-bucket/*",
+      "arn:aws:s3:::engineering-data-bucket",
+      "arn:aws:s3:::engineering-data-bucket/*",
+      "arn:aws:s3:::finance-data-bucket",
+      "arn:aws:s3:::finance-data-bucket/*",
+      "arn:aws:s3:::operations-data-bucket",
+      "arn:aws:s3:::operations-data-bucket/*"
     ]
   }
 }
