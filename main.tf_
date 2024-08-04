@@ -22,7 +22,7 @@ provider "wasabi" {
 
 ############################################################################# s3 backend
 
-# TODO: need to check for wasabi configuration and posibiliy to use dynamo_db for the state locking
+# TODO: Need to check for wasabi configuration and possiblility to use dynamo_db alternative in wasabi for state locking
 
 # # s3 backend
 # terraform {
@@ -45,40 +45,52 @@ terraform {
 ############################################################################# A list of buckets
 
 resource "wasabi_bucket" "sales_data_bucket" {
-  bucket = "sales-${var.bucket_name_postfix}"
+  bucket = "sales-data-bucket"
 }
 
 resource "wasabi_bucket" "marketing_data_bucket" {
-  bucket = "marketing-${var.bucket_name_postfix}"
+  bucket = "marketing-data-bucket"
 }
 
 resource "wasabi_bucket" "engineering_data_bucket" {
-  bucket = "engineering-${var.bucket_name_postfix}"
+  bucket = "engineering-data-bucket"
 }
 
 resource "wasabi_bucket" "finance_data_bucket" {
-  bucket = "finance-${var.bucket_name_postfix}"
+  bucket = "finance-data-bucket"
 }
 
 resource "wasabi_bucket" "operations_data_bucket" {
-  bucket = "operations-${var.bucket_name_postfix}"
+  bucket = "operations-data-bucket"
 }
 
 ############################################################################# A list of policies
 
+# TODO: Verify policy accuracy in Wasabi documentation
+and comparability with AWS S3
+
 # Read-Only Policy
 data "wasabi_policy_document" "read_only" {
   statement {
-    sid = "AllowRead"
+    sid = "ReadOnlyAccess"
 
     actions = [
-      "s3:GetObject",
-      "s3:GetObjectAttributes",
-      "s3:ListBucket",
+      "s3:Get*",
+      "s3:List*",
+      "s3:Describe*",
     ]
 
     resources = [
-      "*",
+      "arn:aws:s3:::sales-data-bucket",
+      "arn:aws:s3:::sales-data-bucket/*",
+      "arn:aws:s3:::marketing-data-bucket",
+      "arn:aws:s3:::marketing-data-bucket/*",
+      "arn:aws:s3:::engineering-data-bucket",
+      "arn:aws:s3:::engineering-data-bucket/*",
+      "arn:aws:s3:::finance-data-bucket",
+      "arn:aws:s3:::finance-data-bucket/*",
+      "arn:aws:s3:::operations-data-bucket",
+      "arn:aws:s3:::operations-data-bucket/*"
     ]
   }
 }
@@ -86,7 +98,7 @@ data "wasabi_policy_document" "read_only" {
 # Read-Write Policy
 data "wasabi_policy_document" "read_write" {
   statement {
-    sid = "AllowRead"
+    sid = "ReadWriteAccess"
 
     actions = [
       "s3:*Object*",
@@ -94,27 +106,28 @@ data "wasabi_policy_document" "read_write" {
     ]
 
     resources = [
-      "*",
+      "arn:aws:s3:::sales-data-bucket",
+      "arn:aws:s3:::sales-data-bucket/*",
+      "arn:aws:s3:::marketing-data-bucket",
+      "arn:aws:s3:::marketing-data-bucket/*",
+      "arn:aws:s3:::engineering-data-bucket",
+      "arn:aws:s3:::engineering-data-bucket/*",
+      "arn:aws:s3:::finance-data-bucket",
+      "arn:aws:s3:::finance-data-bucket/*",
+      "arn:aws:s3:::operations-data-bucket",
+      "arn:aws:s3:::operations-data-bucket/*"
     ]
   }
 }
 
 ############################################################################# A list of users
 
-resource "wasabi_user" "alice" {
-  name = "alice"
-}
-
-resource "wasabi_user" "bob" {
-  name = "bob"
-}
-
-resource "wasabi_user" "charlie" {
-  name = "charlie"
-}
-
-resource "wasabi_user" "backup" {
-  name = "backup"
+resource "wasabi_user" "users" {
+  for_each = toset(var.user_names)
+  name     = each.value
+  lifecycle {
+    ignore_changes = [name]
+  }
 }
 
 ############################################################################# Attach policies to the users
@@ -203,42 +216,58 @@ resource "wasabi_bucket_policy" "backup_operations_data_bucket_ro" {
 variable "region" {
   type        = string
   description = "The Wasabi region to deploy Wasabi resources into"
+  validation {
+    condition     = contains(["us-east-1", "us-east-2", "us-central-1", "us-west-1", "eu-central-1", "eu-west-1", "eu-west-2", "ap-northeast-1", "ap-southeast-1", "ap-southeast-2", "ca-central-1"], var.region)
+    error_message = "Invalid Wasabi region specified. Please refer to the Wasabi documentation for valid regions."
+  }
 }
 
 variable "access_key" {
   type        = string
   description = "Wasabi access key"
+  validation {
+    condition = alltrue([
+      can(regex("^[A-Z0-9]{20}$", var.access_key)),
+      length(var.access_key) >= 20 // Minimum length check
+    ])
+    error_message = "Invalid Wasabi access key format. It should be at least 20 characters long and consist only of uppercase letters and numbers."
+  }
 }
 
 variable "secret_key" {
   type        = string
   description = "Wasabi secret key"
+  validation {
+    condition = alltrue([
+      can(regex("^[A-Za-z0-9/+=]{40}$", var.secret_key)),
+      length(var.secret_key) >= 40 // Minimum length check
+    ])
+    error_message = "Invalid Wasabi secret key format. It should be at least 40 characters long and use a specific set of characters (alphanumeric, '/', '+', '=')."
+  }
 }
 
-variable "bucket_name_postfix" {
-  type        = string
-  description = "Postfix to use for all bucket names"
+variable "user_names" {
+  type        = list(string)
+  default     = []
+  description = "List of user names to create."
+
+  validation {
+    condition = alltrue([
+      for name in var.user_names : can(regex("^[a-z0-9]{3,63}$", name))
+    ])
+    error_message = "Invalid user name(s) provided. Only lowercase letters and numbers are allowed. Each name must be between 3 and 63 characters long."
+  }
 }
 
 ############################################################################# Outputs
 
 output "bucket_arns" {
   value = {
-    sales      = wasabi_bucket.sales_data_bucket.arn
-    marketing  = wasabi_bucket.marketing_data_bucket.arn
+    sales       = wasabi_bucket.sales_data_bucket.arn
+    marketing   = wasabi_bucket.marketing_data_bucket.arn
     engineering = wasabi_bucket.engineering_data_bucket.arn
-    finance    = wasabi_bucket.finance_data_bucket.arn
-    operations = wasabi_bucket.operations_data_bucket.arn
+    finance     = wasabi_bucket.finance_data_bucket.arn
+    operations  = wasabi_bucket.operations_data_bucket.arn
   }
   description = "The ARNs of the created buckets"
-}
-
-output "user_names" {
-  value = {
-    alice   = wasabi_user.alice.name
-    bob     = wasabi_user.bob.name
-    charlie = wasabi_user.charlie.name
-    backup  = wasabi_user.backup.name
-  }
-  description = "The names of the created users"
 }
