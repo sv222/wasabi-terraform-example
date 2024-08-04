@@ -2,4 +2,4 @@
 region = "us-east-1"
 
 # List of names for Wasabi users
-user-names = ["alice", "bob", "charlie", "backup"]
+user_names = ["alice", "bob", "charlie", "backup"]
