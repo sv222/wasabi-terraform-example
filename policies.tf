@@ -1,5 +1,4 @@
-# TODO: Verify policy accuracy in Wasabi documentation
-and comparability with AWS S3
+# TODO: Verify policy accuracy in Wasabi documentation and comparability with AWS S3
 
 # Read-Only Policy
 # Reference: https://docs.aws.amazon.com/aws-managed-policy/latest/reference/AmazonS3ReadOnlyAccess.html
