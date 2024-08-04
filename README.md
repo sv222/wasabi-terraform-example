@@ -18,7 +18,7 @@ This Terraform code provisions buckets and users in Wasabi, a cloud storage serv
    - The code includes a commented-out section for configuring an S3 backend. If you wish to use an S3 backend for storing your Terraform state, uncomment the relevant section in the `backend.tf` file and configure it with your bucket details.
 
 3. **Variables:**
-   - Review and update the variables in the `terraform.tfvars` file, such as `region` and `bucket_name_postfix` according to your requirements.
+   - Review and update the variables in the `terraform.tfvars` file, such as `region` and `user_names` according to your requirements.
 
 ## Usage
 
@@ -51,7 +51,6 @@ This Terraform code provisions buckets and users in Wasabi, a cloud storage serv
 ## Outputs
 
 - `bucket_arns`: A map of bucket names to their ARNs.
-- `user_names`: A map of user resource names to their Wasabi user names.
 
 ## Cleanup
 
